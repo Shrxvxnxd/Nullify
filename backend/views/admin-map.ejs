@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nullify Admin - Google Maps Surveillance</title>
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #050508;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+            background: #0A0A0C;
+        }
+
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            background: rgba(10, 10, 12, 0.9);
+            padding: 15px 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            backdrop-filter: blur(10px);
+            pointer-events: none;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: -0.05em;
+            font-style: italic;
+        }
+
+        .subtitle {
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            color: #4b5563;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #4285F4;
+            border-radius: 50%;
+            margin-right: 8px;
+            box-shadow: 0 0 10px rgba(66, 133, 244, 0.5);
+        }
+
+        /* InfoWindow Styling */
+        .gm-style-iw {
+            background-color: #111111 !important;
+            color: #ffffff !important;
+            border-radius: 12px !important;
+            padding: 0 !important;
+        }
+
+        .gm-style-iw-d {
+            overflow: hidden !important;
+            padding: 0 !important;
+        }
+
+        .gm-style-iw-tc::after {
+            background: #111111 !important;
+        }
+
+        .popup-inner {
+            width: 260px;
+            background: #111111;
+        }
+
+        .popup-img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .popup-body {
+            padding: 15px;
+        }
+
+        .popup-title {
+            font-size: 14px;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            font-style: italic;
+            color: #fff;
+        }
+
+        .popup-desc {
+            font-size: 10px;
+            color: #9ca3af;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+
+        .popup-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .btn-resolve {
+            background: #0F9D58;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            font-size: 9px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-resolve:hover {
+            background: #34A853;
+            transform: translateY(-1px);
+        }
+
+        .status-badge {
+            font-size: 8px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .status-pending {
+            color: #EA4335;
+        }
+
+        .status-resolved {
+            color: #34A853;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1><span class="status-dot"></span>Nullify Engine</h1>
+        <div class="subtitle">Google Maps Surveillance SDK</div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Google Maps API -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_GOOGLE_MAPS_KEY"></script>
+
+    <script>
+        let map;
+        const indiaCenter = { lat: 20.5937, lng: 78.9629 };
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: indiaCenter,
+                zoom: 5,
+                styles: [
+                    { "elementType": "geometry", "stylers": [{ "color": "#212121" }] },
+                    { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+                    { "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+                    { "elementType": "labels.text.stroke", "stylers": [{ "color": "#212121" }] },
+                    { "featureType": "administrative", "elementType": "geometry", "stylers": [{ "color": "#757575" }] },
+                    { "featureType": "administrative.country", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
+                    { "featureType": "landscape", "elementType": "geometry", "stylers": [{ "color": "#050508" }] },
+                    { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#18181b" }] },
+                    { "featureType": "road", "elementType": "geometry.fill", "stylers": [{ "color": "#2c2c2c" }] },
+                    { "featureType": "road", "elementType": "labels.text.fill", "stylers": [{ "color": "#8a8a8a" }] },
+                    { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#000000" }] }
+                ],
+                disableDefaultUI: true,
+                zoomControl: true
+            });
+
+            loadReports();
+        }
+
+        function loadReports() {
+            // Fetch reports from API as requested
+            fetch('/api/admin/reports', {
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('nullify_token')
+                }
+            })
+                .then(res => res.json())
+                .then(data => {
+                    const reports = data.reports || [];
+                    reports.forEach(report => {
+                        const marker = new google.maps.Marker({
+                            position: { lat: parseFloat(report.latitude), lng: parseFloat(report.longitude) },
+                            map: map,
+                            icon: report.status === 'pending'
+                                ? "http://maps.google.com/mapfiles/ms/icons/red-dot.png"
+                                : "http://maps.google.com/mapfiles/ms/icons/green-dot.png",
+                            title: report.title
+                        });
+
+                        const infoWindow = new google.maps.InfoWindow({
+                            content: `
+                            <div class="popup-inner">
+                                ${report.image_path ? `<img src="${report.image_path}" class="popup-img" />` : ''}
+                                <div class="popup-body">
+                                    <div class="popup-title">${report.title}</div>
+                                    <p class="popup-desc">${report.description || 'No additional data.'}</p>
+                                    <div class="popup-footer">
+                                        <span class="status-badge status-${report.status}">${report.status}</span>
+                                        ${report.status === 'pending' ? `
+                                            <button class="btn-resolve" onclick="resolveReport(${report.id})">Mark Resolved</button>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `
+                        });
+
+                        marker.addListener("click", () => {
+                            infoWindow.open(map, marker);
+                        });
+                    });
+
+                    // Auto-center on latest if available
+                    if (reports.length > 0) {
+                        const latest = reports[0];
+                        map.setCenter({ lat: parseFloat(latest.latitude), lng: parseFloat(latest.longitude) });
+                        map.setZoom(12);
+                    }
+                })
+                .catch(err => console.error("Failed to load indicators:", err));
+        }
+
+        function resolveReport(id) {
+            if (!confirm("Neutralize this incident?")) return;
+
+            fetch('/api/admin/reports/' + id, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + localStorage.getItem('nullify_token')
+                }
+            }).then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert("Interception failed: " + data.error);
+                    }
+                });
+        }
+
+        // Initialize on load
+        window.onload = initMap;
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1 @@
+ALTER TABLE nullify_users ADD COLUMN profile_pic_url VARCHAR(255) DEFAULT NULL;

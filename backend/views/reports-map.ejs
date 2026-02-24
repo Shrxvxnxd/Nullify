@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Surveillance Intel Hub - Leaflet</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        body,
+        html {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-family: 'Segoe UI', sans-serif;
+            background: #0b0c10;
+        }
+
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+
+        .admin-header {
+            position: absolute;
+            top: 20px;
+            left: 50px;
+            z-index: 1000;
+            background: rgba(11, 12, 16, 0.95);
+            padding: 15px 30px;
+            color: #66fcf1;
+            border-left: 4px solid #45a29e;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stats {
+            font-size: 10px;
+            color: #c5c6c7;
+            margin-top: 5px;
+            opacity: 0.8;
+        }
+
+        /* Popup Styles */
+        .leaflet-popup-content-wrapper {
+            background: #1f2833;
+            color: #fff;
+            border: 1px solid #45a29e;
+            border-radius: 8px;
+        }
+
+        .report-popup {
+            min-width: 220px;
+        }
+
+        .report-popup h4 {
+            margin: 0 0 10px 0;
+            color: #66fcf1;
+            font-style: italic;
+        }
+
+        .report-popup p {
+            font-size: 12px;
+            color: #c5c6c7;
+            margin: 5px 0;
+        }
+
+        .report-popup img {
+            width: 100%;
+            border-radius: 4px;
+            margin: 10px 0;
+            border: 1px solid #45a29e;
+        }
+
+        .btn-resolve {
+            width: 100%;
+            background: none;
+            border: 1px solid #66fcf1;
+            color: #66fcf1;
+            padding: 8px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: 0.3s;
+            margin-top: 10px;
+        }
+
+        .btn-resolve:hover {
+            background: #66fcf1;
+            color: #0b0c10;
+        }
+
+        .status-badge {
+            font-size: 8px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            font-weight: 900;
+        }
+
+        .p-badge {
+            background: rgba(255, 68, 68, 0.2);
+            color: #ff4444;
+        }
+
+        .r-badge {
+            background: rgba(0, 230, 118, 0.2);
+            color: #00e676;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="admin-header">
+        <h2>Sector Intelligence Hub</h2>
+        <div class="stats">Surveillance Active / <span id="incident-count">0</span> Active Indicators</div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Phase 4: Initialize Map
+        const map = L.map('map', { zoomControl: false }).setView([20.5937, 78.9629], 5);
+
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // Phase 6: Define Icons
+        const redIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        const greenIcon = new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowSize: [41, 41]
+        });
+
+        const markersLayer = L.layerGroup().addTo(map);
+
+        // Phase 5 & 6: Fetch & Render
+        function loadReports() {
+            console.log('[Surveillance] Fetching sector data...');
+            fetch('/api/reports')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('[Surveillance] Intel Received:', data);
+                    markersLayer.clearLayers();
+                    document.getElementById('incident-count').innerText = data.filter(r => r.status === 'pending').length;
+
+                    if (data.length === 0) {
+                        console.warn('[Surveillance] Sector is quiet. No markers to render.');
+                        return;
+                    }
+
+                    data.forEach(report => {
+                        const marker = L.marker([report.latitude, report.longitude], {
+                            icon: report.status === 'pending' ? redIcon : greenIcon
+                        }).addTo(markersLayer);
+
+                        const statusClass = report.status === 'pending' ? 'p-badge' : 'r-badge';
+
+                        marker.bindPopup(`
+                            <div class="report-popup">
+                                <h4>${report.title}</h4>
+                                <span class="status-badge ${statusClass}">${report.status}</span>
+                                <p>${report.description || 'No intel provided.'}</p>
+                                ${report.image_path ? `<img src="${report.image_path}" alt="Indicator Image" />` : ''}
+                                ${report.status === 'pending' ? `
+                                    <button class="btn-resolve" onclick="resolveReport(${report.id})">Neutralize Threat</button>
+                                ` : ''}
+                            </div>
+                        `);
+                    });
+                })
+                .catch(err => {
+                    console.error('[Surveillance Failure]', err);
+                    alert('Communication Link Severed. Check Console.');
+                });
+        }
+
+        // Phase 7: Resolve Report
+        function resolveReport(id) {
+            console.log('[Surveillance] Neutralizing threat:', id);
+            fetch('/api/reports/' + id, {
+                method: 'PUT'
+            })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('[Surveillance] Threat Neutralized.');
+                        loadReports(); // Refresh markers
+                    } else {
+                        alert('Interception failed: ' + data.error);
+                    }
+                })
+                .catch(err => console.error('[Surveillance] Collision Error:', err));
+        }
+
+        // Initialize surveillance on DOM ready
+        document.addEventListener('DOMContentLoaded', loadReports);
+    </script>
+</body>
+
+</html>

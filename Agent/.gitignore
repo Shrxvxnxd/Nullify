@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Project specific
+plastic_dataset/
+runs/
+YOLO Waste Detection.v1i.yolov8/
+
+# Large Model Files
+models/*.pt
+!models/nullify_plastic_best.pt
+
+# Configuration
+.env
+
+# Build outputs
+dist/
+build/
+*.exe
+
+# System Files
+Thumbs.db
+.DS_Store
