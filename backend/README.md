@@ -94,6 +94,27 @@ node check_db_connection.js
 
 ---
 
+## 🔒 Security & Middleware
+
+- **JWT Authentication**: Secured routes using a custom `verifyToken` middleware.
+- **Role-Based Access**: Specialized `isAdmin` middleware for sensitive administrative actions.
+- **CORS Configuration**: Restricted origin access to ensure safe cross-origin resource sharing.
+- **Multistage Validation**: Request payload validation for all critical endpoints (Detection, Sales, Reporting).
+
+---
+
+## 💾 Database Schema (MySQL)
+
+| Table | Purpose |
+| :--- | :--- |
+| `nullify_users` | Core user data, credentials, and points. |
+| `plastic_sales` | Historical record of AI-detected recycling sales. |
+| `nullify_reports` | Community-submitted waste hotspots and incidents. |
+| `products` | Inventory for the sustainable marketplace. |
+| `events` | Sustainability-focused community events. |
+
+---
+
 ## 📁 Directory Structure
 - `controllers/`: Request handling logic (AI integration in `plasticController.js`).
 - `routes/`: API route definitions.
